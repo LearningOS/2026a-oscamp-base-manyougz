@@ -16,11 +16,23 @@ use std::thread;
 ///
 /// Hint: Use `Arc<Mutex<usize>>` as the shared counter.
 pub fn concurrent_counter(n_threads: usize, count_per_thread: usize) -> usize {
-    // TODO: Create Arc<Mutex<usize>> with initial value 0
-    // TODO: Spawn n_threads threads
-    // TODO: In each thread, lock() and increment count_per_thread times
-    // TODO: Join all threads, return final value
-    todo!()
+    // Create Arc<Mutex<usize>> with initial value 0
+    let n = Arc::new(Mutex::new(0));
+    // Spawn n_threads threads
+    // In each thread, lock() and increment count_per_thread times
+    let mut handles = vec![];
+    for _ in 0..n_threads {
+        let data = n.clone();
+        handles.push(thread::spawn(move || {
+            for _ in 0..count_per_thread {
+                let mut v = data.lock().unwrap();
+                *v += 1;
+            }
+        }));
+    }
+    handles.into_iter().for_each(|h| h.join().unwrap());
+    let v = *n.lock().unwrap();
+    v
 }
 
 /// Add elements to a shared vector concurrently using multiple threads.
@@ -29,10 +41,25 @@ pub fn concurrent_counter(n_threads: usize, count_per_thread: usize) -> usize {
 ///
 /// Hint: Use `Arc<Mutex<Vec<usize>>>`.
 pub fn concurrent_collect(n_threads: usize) -> Vec<usize> {
-    // TODO: Create Arc<Mutex<Vec<usize>>>
-    // TODO: Each thread pushes its own id
-    // TODO: After joining all threads, sort the result and return
-    todo!()
+    // Create Arc<Mutex<Vec<usize>>>
+    // Each thread pushes its own id
+    let n = Arc::new(Mutex::new(vec![]));
+    let mut handles = vec![];
+    for i in 0..n_threads {
+        let data = n.clone();
+        handles.push(thread::spawn(move || {
+            let mut v = data.lock().unwrap();
+            v.push(i);
+        }));
+    }
+    // After joining all threads, sort the result and return
+    handles.into_iter().for_each(|h| h.join().unwrap());
+    
+    let mutex = Arc::try_unwrap(n).unwrap();
+    let mut v = mutex.into_inner().unwrap();
+
+    v.sort();
+    v
 }
 
 #[cfg(test)]

@@ -63,7 +63,7 @@ impl BumpAllocator {
 
 unsafe impl GlobalAlloc for BumpAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        // TODO: Implement bump allocation
+        // Implement bump allocation
         //
         // Steps:
         // 1. Load current next (use Ordering::SeqCst)
@@ -76,6 +76,17 @@ unsafe impl GlobalAlloc for BumpAllocator {
         // 6. Return the aligned address as a pointer
         loop {
             let current = self.next.load(Ordering::SeqCst);
+            // note:
+            // core::sync::atomic::Ordering 用来描述：
+            // 一个原子操作，除了“这个原子变量本身不会被撕裂”之外，还要对周围普通内存读写施加多强的顺序约束。
+            // 强度顺序：
+            //  Relaxed
+            //  ↓
+            //  Acquire / Release
+            //  ↓
+            //  AcqRel
+            //  ↓
+            //  SeqCst（顺序一致性，简化并发推理，safety最强）
 
             // 对齐计算
             let aligned = (current + layout.align() - 1) & !(layout.align() - 1);

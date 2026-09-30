@@ -48,42 +48,64 @@ pub trait File: Send + Sync {
 
 /// File descriptor table
 pub struct FdTable {
-    // TODO: Design the internal structure
+    // Design the internal structure
     // Hint: use Vec<Option<Arc<dyn File>>>
     //       the index is the fd number, None means the fd is closed or unallocated
+    table: Vec<Option<Arc<dyn File>>>,
 }
 
 impl FdTable {
     /// Create an empty fd table
     pub fn new() -> Self {
-        // TODO
-        todo!()
+        FdTable { 
+            table: vec![] 
+        }
     }
 
     /// Allocate a new fd, return the fd number.
     ///
     /// Prefers reusing the smallest closed fd number; if no free slot, appends to the end.
     pub fn alloc(&mut self, file: Arc<dyn File>) -> usize {
-        // TODO
-        todo!()
+        let index = self.table.iter().position(|slot| slot.is_none());
+        
+        match index {
+            Some(fd) => {
+                self.table[fd] = Some(file);
+                fd
+            },
+            None => {
+                let index = self.table.len();
+                self.table.push(Some(file));
+                index
+            }
+        }
     }
 
     /// Get the file object for an fd. Returns None if the fd doesn't exist or is closed.
     pub fn get(&self, fd: usize) -> Option<Arc<dyn File>> {
-        // TODO
-        todo!()
+        self.table.get(fd).cloned().flatten()   // 去掉内层引用（Arc 计数 + 1） + 双层 Option 压平为单层
     }
 
     /// Close an fd. Returns true on success, false if the fd doesn't exist or is already closed.
     pub fn close(&mut self, fd: usize) -> bool {
-        // TODO
-        todo!()
+        match self.get(fd) {
+            Some(_) => {
+                self.table[fd] = None;
+                return true;
+            },
+            None => return false
+        }
     }
 
     /// Return the number of currently allocated fds (excluding closed ones)
     pub fn count(&self) -> usize {
-        // TODO
-        todo!()
+        let mut count: usize = 0;
+        self.table.iter().for_each(|entity| {
+            if entity.is_some() {
+                count += 1;
+            }
+        });
+        count
     }
 }
 

@@ -2,8 +2,8 @@
   "schema": 1,
   "courseId": 2074,
   "repository": "LearningOS/2026a-oscamp-base-manyougz",
-  "commit": "b7c2edbd793bd16feb9402e51f254c00808bc6ca",
-  "score": 51,
+  "commit": "4871ca13c3408faf77c1568f8581dfb899438594",
+  "score": 60,
   "totalScore": 100,
   "exercises": [
     {
@@ -93,16 +93,16 @@
     {
       "name": "spinlock_guard",
       "max": 4,
-      "score": 0,
-      "status": "fail",
-      "exitCode": 101
+      "score": 4,
+      "status": "pass",
+      "exitCode": 0
     },
     {
       "name": "rwlock",
       "max": 5,
-      "score": 0,
-      "status": "fail",
-      "exitCode": 101
+      "score": 5,
+      "status": "pass",
+      "exitCode": 0
     },
     {
       "name": "stack_coroutine",
@@ -176,9 +176,9 @@
     }
   ],
   "student": "manyougz",
-  "runId": "36866985953",
+  "runId": "36880089410",
   "runAttempt": "1",
   "upload": {
-    "status": "accepted"
+    "status": "pending"
   }
 }

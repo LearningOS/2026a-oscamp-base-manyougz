@@ -87,6 +87,13 @@ unsafe impl GlobalAlloc for BumpAllocator {
             //  AcqRel
             //  ↓
             //  SeqCst（顺序一致性，简化并发推理，safety最强）
+            // 
+            // 从后面抄的各枚举值含义：
+            // - `Ordering::Relaxed`：不提供任何同步保证
+            // - `Ordering::Acquire`：读操作，禁止后续的读/写操作被重排到该操作之前
+            // - `Ordering::Release`：写操作，禁止之前的读/写操作被重排到该操作之后
+            // - `Ordering::AcqRel`：同时具备 Acquire 和 Release 语义
+            // - `Ordering::SeqCst`：顺序一致性（全局统一顺序）
 
             // 对齐计算
             let aligned = (current + layout.align() - 1) & !(layout.align() - 1);

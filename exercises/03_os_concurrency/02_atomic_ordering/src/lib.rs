@@ -34,24 +34,32 @@ impl FlagChannel {
 
     /// Producer: store data first, then set ready flag.
     ///
-    /// TODO: Choose correct Ordering
+    /// Choose correct Ordering
     /// - What Ordering should be used for writing data?
     /// - What Ordering should be used for writing ready? (ensuring data writes are visible to consumer)
     pub fn produce(&self, value: u32) {
-        // TODO: Store data (choose appropriate Ordering)
-        // TODO: Set ready = true (choose appropriate Ordering so data writes complete before this)
-        todo!()
+        // Store data (choose appropriate Ordering)
+        self.data.store(value, Ordering::Relaxed);  // 写 - Ordering::Relaxed
+        // Set ready = true (choose appropriate Ordering so data writes complete before this)
+        self.ready.store(true, Ordering::Release);  // 发 - Ordering::Release
     }
 
     /// Consumer: spin-wait for ready flag, then read data.
     ///
-    /// TODO: Choose correct Ordering
+    /// Choose correct Ordering
     /// - What Ordering should be used for reading ready? (ensuring it sees data writes from produce)
     /// - What Ordering should be used for reading data?
     pub fn consume(&self) -> u32 {
-        // TODO: Spin-wait for ready to become true (choose appropriate Ordering)
-        // TODO: Read data (choose appropriate Ordering)
-        todo!()
+        // Spin-wait for ready to become true (choose appropriate Ordering)
+        // 收 - Ordering::Acquire
+        // 收不到就一直收，故 while
+        while !self.ready.load(Ordering::Acquire) {
+            std::hint::spin_loop();
+        }
+        // Read data (choose appropriate Ordering)
+        // 读 - Ordering::Relaxed
+        // 前面已经 Acquire 收到了，此步只需保障自己"read"操作不被拆开即可，Relaxed 足矣
+        self.data.load(Ordering::Relaxed)
     }
 
     /// Reset channel state
@@ -81,15 +89,24 @@ impl OnceCell {
     ///
     /// Hint: use `compare_exchange` to ensure only one thread succeeds.
     pub fn init(&self, val: u32) -> bool {
-        // TODO: Use compare_exchange to ensure initialization only once
+        // Use compare_exchange to ensure initialization only once
         // Store value on success
-        todo!()
+        match self.initialized.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst) {
+            Ok(_) => {
+                self.value.store(val, Ordering::SeqCst);
+                true
+            },
+            Err(_) => false,
+        }
     }
 
     /// Get value. Returns Some if initialized, otherwise None.
     pub fn get(&self) -> Option<u32> {
-        // TODO: Check initialized flag, then read value
-        todo!()
+        // Check initialized flag, then read value
+        if self.initialized.load(Ordering::Acquire) {
+            return Some(self.value.load(Ordering::Relaxed));
+        }
+        None
     }
 }
 

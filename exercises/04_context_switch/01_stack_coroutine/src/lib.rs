@@ -61,8 +61,11 @@ impl TaskContext {
     /// - Set `ra = entry` so that the first `ret` in the new context jumps to `entry`.
     /// - Set `sp = stack_top` with 16-byte alignment (RISC-V ABI requires 16-byte aligned stack at function entry).
     /// - Leave `s0`–`s11` zero; they will be loaded on switch.
+    /// 
+    /// set ra = entry, sp = stack_top (16-byte aligned)
     pub fn init(&mut self, stack_top: usize, entry: usize) {
-        todo!("set ra = entry, sp = stack_top (16-byte aligned)")
+        self.ra = entry as u64;
+        self.sp = (stack_top & !0xF) as u64;
     }
 }
 
@@ -71,8 +74,71 @@ impl TaskContext {
 /// In asm: store `sp`, `ra`, `s0`–`s11` to `[a0]` (old), load from `[a1]` (new), zero `a0`/`a1` so we do not leak pointers into the new context, then `ret`.
 ///
 /// Must be `#[unsafe(naked)]` to prevent the compiler from generating a prologue/epilogue.
-pub unsafe fn switch_context(old: &mut TaskContext, new: &TaskContext) {
-    todo!("save callee-saved regs to old, load from new, then ret; use #[unsafe(naked)] + naked_asm!, see module doc for riscv64 ABI and layout")
+/// 
+/// extern "C" 必须要写，否则被默认成 extern "Rust"，而 rust abi 会被 stable rustc 拒绝，nightly rustc 可以
+/// 
+/// extern "xxx" 是一个 abi 稳定性版本声明，
+/// 编译器必须知道一个明确、稳定的 calling convention，才能保证函数入口时参数到底在哪些寄存器里，
+/// 而Rust abi 不承诺稳定，切换到 C abi 则可以使用 target os 稳定的 C calling convention
+#[unsafe(naked)]
+pub unsafe extern "C" fn switch_context(old: &mut TaskContext, new: &TaskContext) {
+    // !note document: https://riscv-non-isa.github.io/riscv-elf-psabi-doc/
+    // 正卷：https://docs.riscv.org/reference/isa/v20260120/unpriv/unpriv-index.html
+
+    // RISC-V 架构部分指令：
+    // sd = Store Doubleword = 写入 64 bit
+    // ld = Load Doubleword  = 读取 64 bit
+    // li = Load Immediate = 写入立即数 64 bit - 真正的 RISC-V 硬件指令，而是伪指令 pseudoinstruction，随汇编器判断的立即数大小而展开
+
+    // naked function 用 naked_asm! 宏，普通 asm! 宏可能会在 inline asm 的周围自动补充一些 prologue / epilogue，而上下文切换恰恰不能允许编译器偷偷修改 sp、保存 ra
+    // prologue（函数序言）：函数刚进入时，编译器自动生成的一小段“准备工作”
+    // epilogue（函数尾声）：函数返回前，编译器自动生成的一小段“收尾工作”
+    core::arch::naked_asm!(
+        // 保存当前任务 old
+        // a0 = &mut old
+        "sd sp,   0(a0)",
+        "sd ra,   8(a0)",
+        "sd s0,  16(a0)",
+        "sd s1,  24(a0)",
+        "sd s2,  32(a0)",
+        "sd s3,  40(a0)",
+        "sd s4,  48(a0)",
+        "sd s5,  56(a0)",
+        "sd s6,  64(a0)",
+        "sd s7,  72(a0)",
+        "sd s8,  80(a0)",
+        "sd s9,  88(a0)",
+        "sd s10, 96(a0)",
+        "sd s11, 104(a0)",
+
+        // 恢复新任务 new
+        // a1 = &new
+        "ld sp,   0(a1)",
+        "ld ra,   8(a1)",
+        "ld s0,  16(a1)",
+        "ld s1,  24(a1)",
+        "ld s2,  32(a1)",
+        "ld s3,  40(a1)",
+        "ld s4,  48(a1)",
+        "ld s5,  56(a1)",
+        "ld s6,  64(a1)",
+        "ld s7,  72(a1)",
+        "ld s8,  80(a1)",
+        "ld s9,  88(a1)",
+        "ld s10, 96(a1)",
+        "ld s11, 104(a1)",
+
+        // 不把 old / new 指针泄漏给新任务
+        "li a0, 0",
+        "li a1, 0",
+
+        // 等价于：
+        //
+        // jalr x0, 0(ra)
+        //
+        // PC <- ra
+        "ret",
+    );
 }
 
 const STACK_SIZE: usize = 1024 * 64;
@@ -80,7 +146,15 @@ const STACK_SIZE: usize = 1024 * 64;
 /// Allocate a stack for a coroutine. Returns `(buffer, stack_top)` where `stack_top` is the high address
 /// (stack grows down). The buffer must be kept alive for the lifetime of the context using this stack.
 pub fn alloc_stack() -> (Vec<u8>, usize) {
-    todo!("allocate stack buffer, return (buffer, stack_top) with stack_top 16-byte aligned")
+    let mut buffer = vec![0u8; STACK_SIZE];
+
+    let stack_bottom = buffer.as_mut_ptr() as usize;
+    let stack_end = stack_bottom + buffer.len();
+
+    // RISC-V ABI format：16-byte stack alignment
+    let stack_top = stack_end & !0xF;
+
+    (buffer, stack_top)
 }
 
 #[cfg(test)]

@@ -2,8 +2,8 @@
   "schema": 1,
   "courseId": 2074,
   "repository": "LearningOS/2026a-oscamp-base-manyougz",
-  "commit": "60b4b1c6aec6889399b1e4b6e6473c860f833154",
-  "score": 89,
+  "commit": "7149a6a2718a7115a7257e9c0a5627f5076ccd06",
+  "score": 100,
   "totalScore": 100,
   "exercises": [
     {
@@ -156,29 +156,29 @@
     {
       "name": "page_table_walk",
       "max": 4,
-      "score": 0,
-      "status": "fail",
-      "exitCode": 101
+      "score": 4,
+      "status": "pass",
+      "exitCode": 0
     },
     {
       "name": "multi_level_pt",
       "max": 4,
-      "score": 0,
-      "status": "fail",
-      "exitCode": 101
+      "score": 4,
+      "status": "pass",
+      "exitCode": 0
     },
     {
       "name": "tlb_sim",
       "max": 3,
-      "score": 0,
-      "status": "fail",
-      "exitCode": 101
+      "score": 3,
+      "status": "pass",
+      "exitCode": 0
     }
   ],
   "student": "manyougz",
-  "runId": "37131966340",
+  "runId": "37510001798",
   "runAttempt": "1",
   "upload": {
-    "status": "accepted"
+    "status": "pending"
   }
 }
